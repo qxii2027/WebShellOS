@@ -73,15 +73,9 @@ export function FileManager({ win }: { win: WindowInstance }) {
       return;
     }
     // track recent file
-    useOS.getState().addRecentFile({ id: f.id, name: f.name, appId: 'filemanager' });
-    // open file by type
-    if (f.mimeType?.startsWith('image/')) {
-      openApp('imageviewer', { fileId: f.id });
-    } else if (f.mimeType === 'audio/' || f.dataUrl?.startsWith('data:audio')) {
-      openApp('musicplayer');
-    } else {
-      openApp('texteditor', { fileId: f.id });
-    }
+    useOS.getState().addRecentFile({ id: f.id, name: f.name, appId: 'fileviewer' });
+    // route every file through the unified FileViewer (handles all formats)
+    openApp('fileviewer', { fileId: f.id });
   };
 
   const newFolder = () => {

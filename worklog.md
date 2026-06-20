@@ -164,3 +164,52 @@ Work Log:
 
 Stage Summary:
 - Document edits now persist and reappear when reopening the TextEditor. The bug was a missing lazy initialization of the editor text from the file's stored content; file-switch syncing already worked.
+
+---
+Task ID: FILEVIEWER + MACOS-UI
+Agent: main
+Task: Add unified file editing (html/md/txt/mp3/mp4/png/jpg/...) + redesign UI macOS-like with smooth animations
+
+Work Log:
+FileViewer (src/components/apps/FileViewer.tsx):
+- New unified app that detects file kind by mime + extension and renders the right editor/viewer:
+  - text (.txt/.log), markdown (.md/.markdown) with live edit/split/preview via react-markdown
+  - html (.html/.htm) with edit/split/preview via sandboxed iframe srcDoc (renders live HTML)
+  - json (.json) code editor + format button
+  - csv (.csv/.tsv) toggle between raw editor and parsed table view
+  - code (.js/.ts/.py/.java/.go/.rs/.sh/.css/.xml/.yml/.sql/.vue/...) monospace editor with line numbers
+  - image (.png/.jpg/.gif/.webp/.svg/.bmp/.avif) viewer with zoom/rotate/reset + dimensions
+  - audio (.mp3/.wav/.ogg/.m4a/.aac/.flac/.opus) native <audio> player with album-art panel
+  - video (.mp4/.webm/.mov/.mkv/.avi/.ogv) native <video> player
+  - pdf (.pdf) iframe viewer
+  - unknown → fallback with download button
+- Toolbar: filename + type badge + dirty indicator + mode toggle (edit/split/preview) + format-JSON + save + download.
+- Code editor with line-number gutter synced scroll, tab=2 spaces, monospace.
+- Ctrl+S keyboard shortcut to save; save updates file content in store.
+- Markdown body CSS added to globals.css (headings, code, pre, blockquote, tables, lists, links).
+- Registered 'fileviewer' AppComponentType + app in DEFAULT_APPS; APPS_VERSION bumped to 3 (migrates existing users).
+- Routed FileManager.openItem, StartMenu recent, CommandPalette to open all files via FileViewer.
+
+macOS UI redesign:
+- LockScreen: rewritten macOS-style — big clock view (click/key advances) → login view (avatar + username + "点击进入" pill + power/restart buttons), heavy wallpaper blur, spring transitions, top-right clock.
+- MenuBar (new, top): translucent 28px bar with Apple-style logo (opens app menu dropdown: about/settings/Finder/AppStore/Spotlight/lock/restart/shutdown), active app name + File/Edit/View/Window/Help menus, right-side status icons (Spotlight, theme toggle, volume, wifi, battery, control-center dropdown with quick tiles + brightness/volume sliders + lock/spotlight, clock+date).
+- Dock (new, replaces Taskbar): centered translucent dock with true macOS magnification (framer-motion useMotionValue + useSpring per-icon size based on mouse distance), tooltip on hover, running-indicator dots, right-click window-list context menu, recycle-bin icon with count badge, spring entrance.
+- Desktop: clock widget + icon grid repositioned to clear menu bar (top:28) and dock (bottom).
+- Window maximize + snap zones (store snapWindow + SnapOverlay) now respect menu bar (top 28) and dock (bottom 90); openApp default window y offset adjusted.
+- DesktopOS now renders MenuBar + Dock instead of Taskbar + StartMenu.
+
+Verification (Agent Browser + VLM):
+- Fixed build error: FormatIndentIncrease not in lucide → replaced with IndentIncrease.
+- Lock screen: large clock on gradient wallpaper (VLM confirmed); click → login view with avatar/username/pill/power buttons (VLM confirmed).
+- Desktop: translucent top menu bar + centered dock with app icons (VLM confirmed macOS-style).
+- Dock magnification: hovering grows icons near cursor (VLM confirmed magnification).
+- FileViewer txt: opened 欢迎.txt → content loaded in editor, toolbar shows TXT badge + edit/save/download.
+- FileViewer markdown: created README.md → toolbar shows edit/split/preview modes → preview renders headings, bold/italic, list, code block, blockquote, link (VLM confirmed).
+- FileViewer html: created demo.html → preview mode renders live HTML (gradient bg, heading, button) via sandboxed iframe (VLM confirmed).
+- FileViewer image: created pixel.png → image panel renders with zoom/rotate tools + natural dimensions.
+- No console errors throughout. Final ESLint: 0 errors, 0 warnings. Cleaned up test files.
+
+Stage Summary:
+- Unified FileViewer handles txt/md/html/json/csv/code/image/audio/video/pdf (+ extensible) with edit + live preview where applicable.
+- UI fully redesigned macOS-style: blurred lock screen, top menu bar with app menu + control center, magnifying dock — all with spring animations.
+- All original functionality preserved (windows, browser, app store, settings, command palette, recycle bin, snap zones, etc.).

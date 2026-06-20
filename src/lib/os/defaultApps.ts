@@ -121,10 +121,20 @@ export const DEFAULT_APPS: AppDef[] = [
     defaultSize: { width: 560, height: 480 },
     minSize: { width: 360, height: 380 },
   },
+  {
+    id: 'fileviewer',
+    name: '文件查看器',
+    icon: 'filetext',
+    component: 'fileviewer',
+    color: 'from-violet-500 to-indigo-600',
+    builtin: true,
+    defaultSize: { width: 880, height: 620 },
+    minSize: { width: 420, height: 360 },
+  },
 ];
 
 // Bump this when DEFAULT_APPS structure changes so persisted state migrates.
-export const APPS_VERSION = 2;
+export const APPS_VERSION = 3;
 
 export interface WallpaperDef {
   id: string;

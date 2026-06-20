@@ -96,8 +96,7 @@ export function StartMenu() {
                     key={r.id}
                     onClick={() => {
                       if (f.type === 'folder') openApp('filemanager', { folderId: f.id });
-                      else if (f.mimeType?.startsWith('image/')) openApp('imageviewer', { fileId: f.id });
-                      else openApp('texteditor', { fileId: f.id });
+                      else openApp('fileviewer', { fileId: f.id });
                       toggle(false);
                     }}
                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent transition text-left"

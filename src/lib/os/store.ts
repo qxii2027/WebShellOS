@@ -241,7 +241,7 @@ export const useOS = create<OSStore>()(
         const dh = app.defaultSize?.height || 480;
         const offset = (state.windows.length % 6) * 28;
         const x = Math.max(12, Math.min(vw - dw - 12, Math.round((vw - dw) / 2) + offset - 80));
-        const y = Math.max(12, Math.min(vh - dh - 64, Math.round((vh - dh) / 2) + offset - 60));
+        const y = Math.max(36, Math.min(vh - dh - 110, Math.round((vh - dh) / 2) + offset - 40));
         const win: WindowInstance = {
           id,
           appId,
@@ -342,7 +342,8 @@ export const useOS = create<OSStore>()(
       snapWindow: (id, side) => {
         const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
         const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-        const tb = 56;
+        const topPad = 28; // menu bar
+        const bottomPad = 90; // dock
         set((s) => ({
           windows: s.windows.map((w) => {
             if (w.id !== id) return w;
@@ -355,9 +356,9 @@ export const useOS = create<OSStore>()(
                 ...w,
                 maximized: false,
                 x: 0,
-                y: 0,
+                y: topPad,
                 width: Math.round(vw / 2),
-                height: vh - tb,
+                height: vh - topPad - bottomPad,
                 prevRect,
               };
             }
@@ -365,9 +366,9 @@ export const useOS = create<OSStore>()(
               ...w,
               maximized: false,
               x: Math.round(vw / 2),
-              y: 0,
+              y: topPad,
               width: Math.round(vw / 2),
-              height: vh - tb,
+              height: vh - topPad - bottomPad,
               prevRect,
             };
           }),

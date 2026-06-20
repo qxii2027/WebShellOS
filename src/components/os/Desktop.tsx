@@ -48,7 +48,7 @@ export function Desktop({ children }: { children?: React.ReactNode }) {
         },
       },
       { separator: true },
-      { label: '命令面板', icon: '⌘', onClick: () => useOS.getState().toggleCommandPalette(true) },
+      { label: 'Spotlight 搜索', icon: '🔍', onClick: () => useOS.getState().toggleCommandPalette(true) },
       { label: '打开终端', icon: '⌘', onClick: () => openApp('terminal') },
       { label: '显示设置', icon: '⚙', onClick: () => openApp('settings') },
       { separator: true },
@@ -67,14 +67,14 @@ export function Desktop({ children }: { children?: React.ReactNode }) {
       onContextMenu={handleContext}
       onPointerDown={() => setSelected(null)}
     >
-      {/* Desktop clock widget */}
-      <div className="absolute top-6 right-8 hidden sm:flex flex-col items-end text-white drop-shadow-lg pointer-events-none">
+      {/* Desktop clock widget (moved below menu bar) */}
+      <div className="absolute top-9 right-8 hidden sm:flex flex-col items-end text-white drop-shadow-lg pointer-events-none">
         <div className="text-5xl font-thin tabular-nums leading-none">{timeStr}</div>
         <div className="text-sm font-light mt-1 opacity-90">{dateStr}</div>
       </div>
 
       {/* Desktop icons */}
-      <div className="absolute top-3 left-3 grid grid-flow-col grid-rows-[repeat(auto-fill,96px)] gap-1 max-h-[calc(100%-80px)]">
+      <div className="absolute top-10 left-3 grid grid-flow-col grid-rows-[repeat(auto-fill,96px)] gap-1 max-h-[calc(100%-140px)]">
         {desktopApps.map((app, i) => (
           <motion.button
             key={app.id}

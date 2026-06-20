@@ -36,9 +36,9 @@ export function Window({ win, app }: { win: WindowInstance; app: AppDef }) {
   const style: React.CSSProperties = win.maximized
     ? {
         left: 0,
-        top: 0,
+        top: 28, // below menu bar
         width: '100vw',
-        height: 'calc(100vh - 56px)',
+        height: 'calc(100vh - 120px)', // above dock
         zIndex: win.zIndex,
       }
     : {

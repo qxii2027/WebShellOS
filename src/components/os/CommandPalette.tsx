@@ -86,10 +86,8 @@ export function CommandPalette() {
         run: () => {
           if (f.type === 'folder') {
             openApp('filemanager', { folderId: f.id });
-          } else if (f.mimeType?.startsWith('image/')) {
-            openApp('imageviewer', { fileId: f.id });
           } else {
-            openApp('texteditor', { fileId: f.id });
+            openApp('fileviewer', { fileId: f.id });
           }
         },
       }));

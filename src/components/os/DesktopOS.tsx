@@ -6,8 +6,8 @@ import { useOS } from '@/lib/os/store';
 import { BootScreen } from './BootScreen';
 import { LockScreen } from './LockScreen';
 import { Desktop } from './Desktop';
-import { Taskbar } from './Taskbar';
-import { StartMenu } from './StartMenu';
+import { MenuBar } from './MenuBar';
+import { Dock } from './Dock';
 import { ContextMenu } from './ContextMenu';
 import { NotificationCenter } from './NotificationCenter';
 import { CommandPalette } from './CommandPalette';
@@ -88,8 +88,8 @@ export function DesktopOS() {
                 })}
             </AnimatePresence>
           </Desktop>
-          <Taskbar />
-          <StartMenu />
+          <MenuBar />
+          <Dock />
           <NotificationCenter />
           <CommandPalette />
           <WindowSwitcher />

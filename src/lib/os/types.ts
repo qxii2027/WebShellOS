@@ -13,7 +13,8 @@ export type AppComponentType =
   | 'clock'
   | 'about'
   | 'webapp'
-  | 'paint';
+  | 'paint'
+  | 'fileviewer';
 
 export interface AppDef {
   id: string;

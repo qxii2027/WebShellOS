@@ -213,3 +213,52 @@ Stage Summary:
 - Unified FileViewer handles txt/md/html/json/csv/code/image/audio/video/pdf (+ extensible) with edit + live preview where applicable.
 - UI fully redesigned macOS-style: blurred lock screen, top menu bar with app menu + control center, magnifying dock — all with spring animations.
 - All original functionality preserved (windows, browser, app store, settings, command palette, recycle bin, snap zones, etc.).
+
+---
+Task ID: OFFLINE-INDEX
+Agent: main
+Task: Add public/index.html as a true offline entry point (standalone single-file WebOS)
+
+Work Log:
+- Created public/index.html — a complete, self-contained WebOS in a single HTML file (1765 lines, ~70KB). No external dependencies (0 http/cdn refs), works via file:// or served.
+- Next.js serves it at /index.html; root / remains the Next.js app. The standalone file is also downloadable for true offline use.
+- Implements the full macOS-style experience matching the Next.js version:
+  - Lifecycle: boot (progress bar) → lock screen (two-stage: big clock → login with avatar/username/enter-pill/power buttons, blurred wallpaper) → desktop.
+  - Top translucent menu bar: Apple-style logo dropdown (about/settings/Finder/AppStore/Spotlight/lock/restart/shutdown), active app name, File/Edit/View/Window/Help menus, status icons (Spotlight, theme toggle, volume, wifi, battery), control-center dropdown (theme/wifi/volume/notifications tiles + brightness/volume sliders), date+clock.
+  - Centered Dock with true macOS magnification (mouse-distance-driven per-icon size via JS, transform translate), tooltips, running-indicator dots, right-click window-list context menu, separator + recycle-bin icon with count badge, spring entrance.
+  - Window manager: drag (pointer events, mouse+touch), 8-direction resize, minimize/maximize/close, focus z-index, snap zones (left/right/max with live preview overlay).
+  - Desktop: wallpaper + icon grid + recycle bin + clock widget + right-click context menu (change wallpaper, next wallpaper, Spotlight, terminal, lock).
+  - Command Palette (Ctrl+K): search apps/files/actions, keyboard nav, grouped.
+  - Global shortcuts: Ctrl/Cmd+K, Alt+Tab cycle, Escape.
+- 9 built-in apps:
+  - 访达 (Finder): sidebar (Home/folders/Trash), breadcrumb, grid view, new folder/file, upload, rename, delete (soft-delete to trash), restore, empty trash.
+  - 浏览器 (Browser): tabs, address bar (URL/search normalization), back/forward/reload/home, bookmarks, install-as-app, new-tab page with quick links, iframe rendering.
+  - 应用商店 (App Store): catalog + custom URL install + manage installed apps (open/uninstall).
+  - 设置 (Settings): personalize (wallpaper 8 options, theme light/dark, accent colors), system (username/brightness/volume), storage (localStorage size + counts), about.
+  - 文本编辑 (Text Editor): line-number gutter, save (Ctrl+S), download, char/word/line count, dirty indicator, loads persisted content.
+  - 终端 (Terminal): mock shell on virtual FS — ls/cd/pwd/cat/echo/mkdir/touch/rm/write/clear/date/whoami/history/neofetch/open/apps/theme/exit, command history (up/down).
+  - 计算器 (Calculator): standard + scientific-style ops, keyboard support, safe eval.
+  - 时钟 (Clock): clock/stopwatch/timer tabs with beeps.
+  - 关于 (About): system info.
+  - Installed web apps render in sandboxed iframe with letter-avatar icon.
+- Mobile responsive (≤767px): home screen (clock + app grid + dock + home indicator) + fullscreen app frame with back/close.
+- localStorage persistence (key: webos-standalone) for apps, settings, files, trash, bookmarks, history, notifications. Survives reload.
+- Bugs found & fixed during verification:
+  1. icon('x')() — calling SVG element as function (TypeError). Fixed all instances via sed (replaced icon('x')() with icon('x')).
+  2. {type:'file',multiple,...} — shorthand `multiple` referenced undefined variable. Fixed to multiple:'multiple'.
+  3. Added try/catch around renderDesktopShell in renderAll to surface render errors visibly (kept for robustness).
+- Verification (Agent Browser + VLM):
+  - Boot → lock (large clock on gradient) → login (avatar/username/pill/power) → desktop (menu bar + dock) — all confirmed via VLM.
+  - File manager opens from dock, shows 文档/图片/音乐 folders + 欢迎.txt/README.md files (VLM confirmed).
+  - Opened 欢迎.txt in text editor → content loaded from store.
+  - Command palette (Ctrl+K) opens, searches "计算", opens calculator.
+  - App store installs Bing → persisted (1 webapp).
+  - Terminal: `help` lists commands; full command set works.
+  - Mobile (390x844): home screen with app grid + dock (VLM confirmed).
+  - Persistence survives reload (files=5, apps=9 retained).
+  - Zero external dependencies (offline-capable). No console errors.
+
+Stage Summary:
+- public/index.html is a complete standalone WebOS offline entry — accessible at /index.html, downloadable, and runnable via file:// with no server or network.
+- Matches the macOS-style design (menu bar, magnifying dock, blurred lock screen) and core features of the Next.js version, in a single self-contained file.
+- 9 built-in apps + installable web apps + full window management + localStorage persistence + mobile responsive + command palette.

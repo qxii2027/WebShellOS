@@ -919,7 +919,19 @@ function renderWindow(win,app){
   tb.addEventListener('pointerdown',e=>{
     if(e.target.closest('.traffic'))return;
     if(win.maximized)return;
-    focusWindow(win.id);
+    // Update focus inline without rerender — renderAll() would destroy this
+    // titlebar DOM, breaking setPointerCapture and the move/up handlers.
+    if(state.activeWin !== win.id){
+      const oldEl = document.querySelector(`.win[data-id="${state.activeWin}"]`);
+      if(oldEl){const ot=oldEl.querySelector('.titlebar');if(ot)ot.classList.add('inactive');}
+      state.activeWin = win.id;
+      win.z = state.zTop + 1; state.zTop = win.z;
+      win.minimized = false;
+      w.style.zIndex = win.z;
+      w.classList.remove('minimized');
+      tb.classList.remove('inactive');
+      save();
+    }
     const startX=e.clientX,startY=e.clientY,ox=win.x,oy=win.y;
     tb.classList.add('dragging');
     let snapTimer=null;
@@ -961,13 +973,24 @@ function renderWindow(win,app){
 }
 function startResize(e,win,dir){
   e.stopPropagation();
-  focusWindow(win.id);
+  // Update focus inline without rerender — renderAll() would destroy the resize
+  // handle DOM, breaking setPointerCapture and the move/up handlers.
+  const handle=e.currentTarget;
+  const wEl=handle.closest('.win');
+  if(state.activeWin !== win.id){
+    const oldEl = document.querySelector(`.win[data-id="${state.activeWin}"]`);
+    if(oldEl){const ot=oldEl.querySelector('.titlebar');if(ot)ot.classList.add('inactive');}
+    state.activeWin = win.id;
+    win.z = state.zTop + 1; state.zTop = win.z;
+    win.minimized = false;
+    if(wEl){wEl.style.zIndex = win.z; wEl.classList.remove('minimized');}
+    const tb = wEl ? wEl.querySelector('.titlebar') : null;
+    if(tb) tb.classList.remove('inactive');
+    save();
+  }
   const startX=e.clientX,startY=e.clientY;
   const ox=win.x,oy=win.y,ow=win.width,oh=win.height;
   const minW=(state.apps.find(a=>a.id===win.appId)||{}).mw||320,minH=(state.apps.find(a=>a.id===win.appId)||{}).mh||240;
-  // Capture the pointer on the resize handle so resizing keeps working when the
-  // cursor passes over iframes (needed for file:// where iframes are opaque).
-  const handle=e.currentTarget;
   try{handle.setPointerCapture(e.pointerId);}catch(err){}
   const move=ev=>{
     const dx=ev.clientX-startX,dy=ev.clientY-startY;

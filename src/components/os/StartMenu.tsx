@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Search, Power, RotateCw, Lock, Settings as SettingsIcon } from 'lucide-react';
+import { Search, Power, RotateCw, Lock, Settings as SettingsIcon, FileText, Clock as ClockIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useOS } from '@/lib/os/store';
+import { AppIcon, WebappIcon } from './AppIcon';
 
 export function StartMenu() {
   const open = useOS((s) => s.startMenuOpen);
@@ -13,6 +15,8 @@ export function StartMenu() {
   const lock = useOS((s) => s.lock);
   const restart = useOS((s) => s.restart);
   const shutdown = useOS((s) => s.shutdown);
+  const recentFiles = useOS((s) => s.recentFiles);
+  const files = useOS((s) => s.files);
   const [query, setQuery] = useState('');
   const [prevOpen, setPrevOpen] = useState(open);
   const ref = useRef<HTMLDivElement>(null);
@@ -43,8 +47,6 @@ export function StartMenu() {
     };
   }, [open, toggle]);
 
-  if (!open) return null;
-
   const filtered = apps.filter((a) =>
     a.name.toLowerCase().includes(query.toLowerCase()),
   );
@@ -53,9 +55,16 @@ export function StartMenu() {
   const installed = filtered.filter((a) => !a.builtin);
 
   return (
-    <div
+    <AnimatePresence>
+      {open && (
+    <motion.div
       ref={ref}
-      className="absolute bottom-16 left-2 z-[9100] w-[min(560px,calc(100vw-16px))] max-h-[70vh] flex flex-col rounded-2xl bg-card/95 backdrop-blur-2xl border border-border shadow-2xl overflow-hidden text-card-foreground win-pop"
+      className="absolute bottom-16 left-2 z-[9100] w-[min(560px,calc(100vw-16px))] max-h-[70vh] flex flex-col rounded-2xl bg-card/95 backdrop-blur-2xl border border-border shadow-2xl overflow-hidden text-card-foreground"
+      initial={{ opacity: 0, y: 12, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 12, scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+      style={{ originX: 0, originY: 1 }}
     >
       {/* Search */}
       <div className="p-3 border-b border-border">
@@ -73,6 +82,39 @@ export function StartMenu() {
 
       {/* App grid */}
       <div className="flex-1 overflow-y-auto p-3">
+        {!query && recentFiles.length > 0 && (
+          <div className="mb-4">
+            <div className="text-xs font-medium text-muted-foreground px-1 mb-2 flex items-center gap-1">
+              <ClockIcon className="w-3 h-3" /> 最近使用
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {recentFiles.slice(0, 4).map((r) => {
+                const f = files.find((x) => x.id === r.id);
+                if (!f) return null;
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => {
+                      if (f.type === 'folder') openApp('filemanager', { folderId: f.id });
+                      else if (f.mimeType?.startsWith('image/')) openApp('imageviewer', { fileId: f.id });
+                      else openApp('texteditor', { fileId: f.id });
+                      toggle(false);
+                    }}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent transition text-left"
+                  >
+                    <span className="flex items-center justify-center w-6 h-6 rounded-md bg-muted shrink-0">
+                      <FileText className="w-3.5 h-3.5 text-sky-500" />
+                    </span>
+                    <span className="text-sm truncate flex-1">{f.name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {new Date(r.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {builtin.length > 0 && (
           <>
             <div className="text-xs font-medium text-muted-foreground px-1 mb-2">
@@ -86,12 +128,10 @@ export function StartMenu() {
                     openApp(app.id);
                     toggle(false);
                   }}
-                  className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-accent transition"
+                  className="group flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-accent transition"
                 >
-                  <span
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${app.color || 'from-slate-400 to-slate-600'} flex items-center justify-center text-2xl shadow ring-1 ring-black/5`}
-                  >
-                    {app.icon}
+                  <span className="transition-transform group-hover:scale-105 group-active:scale-95">
+                    <AppIcon icon={app.icon} color={app.color} size={48} />
                   </span>
                   <span className="text-xs text-center line-clamp-1 w-full">{app.name}</span>
                 </button>
@@ -112,12 +152,14 @@ export function StartMenu() {
                     openApp(app.id);
                     toggle(false);
                   }}
-                  className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-accent transition"
+                  className="group flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-accent transition"
                 >
-                  <span
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${app.color || 'from-slate-400 to-slate-600'} flex items-center justify-center text-2xl shadow ring-1 ring-black/5`}
-                  >
-                    {app.icon}
+                  <span className="transition-transform group-hover:scale-105 group-active:scale-95">
+                    {app.url ? (
+                      <WebappIcon url={app.url} name={app.name} size={48} />
+                    ) : (
+                      <AppIcon icon={app.icon} color={app.color} size={48} />
+                    )}
                   </span>
                   <span className="text-xs text-center line-clamp-1 w-full">{app.name}</span>
                 </button>
@@ -178,6 +220,8 @@ export function StartMenu() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

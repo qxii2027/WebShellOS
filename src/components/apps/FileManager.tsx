@@ -18,20 +18,27 @@ import {
   Home,
   Search,
   Image as ImageIcon,
+  RotateCcw,
 } from 'lucide-react';
 import { useOS, uid } from '@/lib/os/store';
 import type { WindowInstance, VFile } from '@/lib/os/types';
 
 export function FileManager({ win }: { win: WindowInstance }) {
   const files = useOS((s) => s.files);
+  const trash = useOS((s) => s.trash);
   const createFile = useOS((s) => s.createFile);
   const updateFile = useOS((s) => s.updateFile);
   const deleteFile = useOS((s) => s.deleteFile);
+  const restoreFile = useOS((s) => s.restoreFile);
+  const emptyTrash = useOS((s) => s.emptyTrash);
+  const purgeFile = useOS((s) => s.purgeFile);
   const openApp = useOS((s) => s.openApp);
   const notify = useOS((s) => s.notify);
 
   const initialFolder = (win.state?.folderId as string) || null;
+  const initialTrash = win.state?.view === 'trash';
   const [currentId, setCurrentId] = useState<string | null>(initialFolder);
+  const [showTrash, setShowTrash] = useState(initialTrash);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [query, setQuery] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -65,6 +72,8 @@ export function FileManager({ win }: { win: WindowInstance }) {
       setSelected(null);
       return;
     }
+    // track recent file
+    useOS.getState().addRecentFile({ id: f.id, name: f.name, appId: 'filemanager' });
     // open file by type
     if (f.mimeType?.startsWith('image/')) {
       openApp('imageviewer', { fileId: f.id });
@@ -132,7 +141,7 @@ export function FileManager({ win }: { win: WindowInstance }) {
   const remove = (f: VFile) => {
     deleteFile(f.id);
     setSelected(null);
-    notify({ title: '已删除', body: f.name, icon: '🗑️' });
+    notify({ title: '已移至回收站', body: f.name, icon: '🗑' });
   };
 
   const iconFor = (f: VFile) => {
@@ -143,10 +152,30 @@ export function FileManager({ win }: { win: WindowInstance }) {
   };
 
   const bigIconFor = (f: VFile) => {
-    if (f.type === 'folder') return <span className="text-4xl">📁</span>;
-    if (f.mimeType?.startsWith('image/')) return <span className="text-4xl">🖼️</span>;
-    if (f.mimeType?.startsWith('text/') || f.name.endsWith('.txt')) return <span className="text-4xl">📄</span>;
-    return <span className="text-4xl">📦</span>;
+    const cls = 'w-9 h-9';
+    if (f.type === 'folder')
+      return (
+        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/20">
+          <Folder className="w-9 h-9 text-amber-500" />
+        </span>
+      );
+    if (f.mimeType?.startsWith('image/'))
+      return (
+        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-500/20">
+          <FileImage className={cls} style={{ color: '#10b981' }} />
+        </span>
+      );
+    if (f.mimeType?.startsWith('text/') || f.name.endsWith('.txt'))
+      return (
+        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-500/10 ring-1 ring-sky-500/20">
+          <FileText className={cls} style={{ color: '#0ea5e9' }} />
+        </span>
+      );
+    return (
+      <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted ring-1 ring-border">
+        <File className={cls} />
+      </span>
+    );
   };
 
   return (
@@ -156,8 +185,11 @@ export function FileManager({ win }: { win: WindowInstance }) {
         <SideItem
           icon={<Home className="w-4 h-4" />}
           label="主页"
-          active={currentId === null}
-          onClick={() => setCurrentId(null)}
+          active={currentId === null && !showTrash}
+          onClick={() => {
+            setCurrentId(null);
+            setShowTrash(false);
+          }}
         />
         {files
           .filter((f) => f.type === 'folder' && f.parentId === null)
@@ -166,10 +198,24 @@ export function FileManager({ win }: { win: WindowInstance }) {
               key={f.id}
               icon={<Folder className="w-4 h-4 text-amber-500" />}
               label={f.name}
-              active={breadcrumb.some((b) => b.id === f.id)}
-              onClick={() => setCurrentId(f.id)}
+              active={breadcrumb.some((b) => b.id === f.id) && !showTrash}
+              onClick={() => {
+                setCurrentId(f.id);
+                setShowTrash(false);
+              }}
             />
           ))}
+        <div className="mt-auto">
+          <SideItem
+            icon={<Trash2 className="w-4 h-4" />}
+            label="回收站"
+            active={showTrash}
+            onClick={() => {
+              setShowTrash(true);
+              setSelected(null);
+            }}
+          />
+        </div>
       </div>
 
       {/* Main */}
@@ -178,10 +224,14 @@ export function FileManager({ win }: { win: WindowInstance }) {
         <div className="flex items-center gap-1 px-2 h-11 border-b border-border bg-background shrink-0">
           <button
             onClick={() => {
+              if (showTrash) {
+                setShowTrash(false);
+                return;
+              }
               const parent = currentId ? files.find((f) => f.id === currentId)?.parentId ?? null : null;
               setCurrentId(parent);
             }}
-            disabled={!currentId}
+            disabled={!currentId && !showTrash}
             className="w-8 h-8 rounded-lg hover:bg-accent disabled:opacity-30 flex items-center justify-center"
             title="后退"
           >
@@ -193,23 +243,31 @@ export function FileManager({ win }: { win: WindowInstance }) {
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-1 flex-1 min-w-0 px-2">
-            <button
-              onClick={() => setCurrentId(null)}
-              className="text-sm hover:underline shrink-0"
-            >
-              主页
-            </button>
-            {breadcrumb.map((b) => (
-              <div key={b.id} className="flex items-center gap-1 min-w-0">
-                <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+            {showTrash ? (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Trash2 className="w-3.5 h-3.5" /> 回收站
+              </span>
+            ) : (
+              <>
                 <button
-                  onClick={() => setCurrentId(b.id)}
-                  className="text-sm hover:underline truncate"
+                  onClick={() => setCurrentId(null)}
+                  className="text-sm hover:underline shrink-0"
                 >
-                  {b.name}
+                  主页
                 </button>
-              </div>
-            ))}
+                {breadcrumb.map((b) => (
+                  <div key={b.id} className="flex items-center gap-1 min-w-0">
+                    <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <button
+                      onClick={() => setCurrentId(b.id)}
+                      className="text-sm hover:underline truncate"
+                    >
+                      {b.name}
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-1">
@@ -222,17 +280,21 @@ export function FileManager({ win }: { win: WindowInstance }) {
                 className="w-24 bg-transparent outline-none text-sm"
               />
             </div>
-            <button onClick={newFolder} className="w-8 h-8 rounded-lg hover:bg-accent flex items-center justify-center" title="新建文件夹">
-              <FolderPlus className="w-4 h-4" />
-            </button>
-            <button onClick={newTextFile} className="w-8 h-8 rounded-lg hover:bg-accent flex items-center justify-center" title="新建文本文档">
-              <FileText className="w-4 h-4" />
-            </button>
-            <label className="w-8 h-8 rounded-lg hover:bg-accent flex items-center justify-center cursor-pointer" title="上传">
-              <Upload className="w-4 h-4" />
-              <input type="file" multiple className="hidden" onChange={onUpload} />
-            </label>
-            <div className="w-px h-5 bg-border mx-1" />
+            {!showTrash && (
+              <>
+                <button onClick={newFolder} className="w-8 h-8 rounded-lg hover:bg-accent flex items-center justify-center" title="新建文件夹">
+                  <FolderPlus className="w-4 h-4" />
+                </button>
+                <button onClick={newTextFile} className="w-8 h-8 rounded-lg hover:bg-accent flex items-center justify-center" title="新建文本文档">
+                  <FileText className="w-4 h-4" />
+                </button>
+                <label className="w-8 h-8 rounded-lg hover:bg-accent flex items-center justify-center cursor-pointer" title="上传">
+                  <Upload className="w-4 h-4" />
+                  <input type="file" multiple className="hidden" onChange={onUpload} />
+                </label>
+                <div className="w-px h-5 bg-border mx-1" />
+              </>
+            )}
             <button
               onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
               className="w-8 h-8 rounded-lg hover:bg-accent flex items-center justify-center"
@@ -249,7 +311,75 @@ export function FileManager({ win }: { win: WindowInstance }) {
           onClick={() => setSelected(null)}
           onContextMenu={(e) => e.preventDefault()}
         >
-          {sorted.length === 0 ? (
+          {showTrash ? (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Trash2 className="w-4 h-4" />
+                  回收站 ({trash.length} 项)
+                </div>
+                {trash.length > 0 && (
+                  <button
+                    onClick={() => {
+                      emptyTrash();
+                      notify({ title: '回收站已清空', body: '所有项目已永久删除', icon: '🗑' });
+                    }}
+                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-destructive/10 text-destructive text-sm hover:bg-destructive/20 transition"
+                  >
+                    <Trash2 className="w-4 h-4" /> 清空回收站
+                  </button>
+                )}
+              </div>
+              {trash.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                  <Trash2 className="w-12 h-12 mb-2 opacity-30" />
+                  <p className="text-sm">回收站为空</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">
+                  {trash.map((f) => (
+                    <div
+                      key={f.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelected(f.id);
+                      }}
+                      className={`group relative flex flex-col items-center gap-1.5 p-3 rounded-xl cursor-default transition ${
+                        selected === f.id ? 'bg-primary/10 ring-1 ring-primary/40' : 'hover:bg-accent/50'
+                      }`}
+                    >
+                      {bigIconFor(f)}
+                      <span className="text-xs text-center line-clamp-2 break-all w-full">{f.name}</span>
+                      <div className="absolute top-1 right-1 hidden group-hover:flex items-center gap-0.5 bg-background/90 rounded-md shadow border border-border">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            restoreFile(f.id);
+                            notify({ title: '已还原', body: f.name, icon: '↩' });
+                          }}
+                          className="w-6 h-6 rounded hover:bg-accent flex items-center justify-center"
+                          title="还原"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            purgeFile(f.id);
+                            notify({ title: '已永久删除', body: f.name, icon: '🗑' });
+                          }}
+                          className="w-6 h-6 rounded hover:bg-destructive/10 text-destructive flex items-center justify-center"
+                          title="永久删除"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <Folder className="w-12 h-12 mb-2 opacity-30" />
               <p className="text-sm">此文件夹为空</p>

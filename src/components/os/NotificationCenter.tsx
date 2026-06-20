@@ -34,6 +34,7 @@ export function NotificationCenter() {
     <div
       ref={ref}
       className="absolute bottom-16 right-2 z-[9100] w-[min(380px,calc(100vw-16px))] max-h-[75vh] flex flex-col rounded-2xl bg-card/95 backdrop-blur-2xl border border-border shadow-2xl overflow-hidden text-card-foreground win-pop"
+      style={{ animationDuration: '0.2s' }}
     >
       {/* Quick toggles */}
       <div className="p-3 border-b border-border">

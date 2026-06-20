@@ -11,7 +11,7 @@ import type {
   Bookmark,
   HistoryEntry,
 } from './types';
-import { DEFAULT_APPS, WALLPAPERS } from './defaultApps';
+import { DEFAULT_APPS, WALLPAPERS, APPS_VERSION } from './defaultApps';
 
 let idCounter = 0;
 export function uid(prefix = 'id'): string {
@@ -91,6 +91,8 @@ interface OSStore {
 
   // files
   files: VFile[];
+  trash: VFile[];
+  recentFiles: { id: string; name: string; appId: string; time: number }[];
 
   // notifications
   notifications: OSNotification[];
@@ -102,6 +104,8 @@ interface OSStore {
   // ui
   startMenuOpen: boolean;
   notifCenterOpen: boolean;
+  commandPaletteOpen: boolean;
+  snapPreview: 'left' | 'right' | 'max' | null;
   contextMenu: {
     open: boolean;
     x: number;
@@ -138,7 +142,11 @@ interface OSStore {
   // files
   createFile: (file: Partial<VFile> & { name: string; type: 'file' | 'folder' }) => string;
   updateFile: (id: string, patch: Partial<VFile>) => void;
-  deleteFile: (id: string) => void;
+  deleteFile: (id: string) => void; // moves to trash
+  restoreFile: (id: string) => void;
+  emptyTrash: () => void;
+  purgeFile: (id: string) => void; // permanently delete from trash
+  addRecentFile: (entry: { id: string; name: string; appId: string }) => void;
 
   // notifications
   notify: (n: { title: string; body: string; icon?: string }) => void;
@@ -154,6 +162,9 @@ interface OSStore {
 
   toggleStartMenu: (open?: boolean) => void;
   setContextMenu: (cm: OSStore['contextMenu']) => void;
+  toggleCommandPalette: (open?: boolean) => void;
+  cycleWindow: (direction?: 1 | -1) => void;
+  setSnapPreview: (s: OSStore['snapPreview']) => void;
 
   resetAll: () => void;
 }
@@ -181,6 +192,8 @@ export const useOS = create<OSStore>()(
       settings: DEFAULT_SETTINGS,
 
       files: seedFiles(),
+      trash: [],
+      recentFiles: [],
 
       notifications: [],
       bookmarks: [
@@ -192,6 +205,8 @@ export const useOS = create<OSStore>()(
 
       startMenuOpen: false,
       notifCenterOpen: false,
+      commandPaletteOpen: false,
+      snapPreview: null,
       contextMenu: null,
 
       setPhase: (p) => set({ phase: p, booted: p === 'desktop' || get().booted }),
@@ -401,20 +416,82 @@ export const useOS = create<OSStore>()(
 
       deleteFile: (id) =>
         set((s) => {
-          // recursively delete children
-          const toDelete = new Set<string>([id]);
+          // collect the subtree and move it to trash (soft delete)
+          const toTrash = new Set<string>([id]);
           let changed = true;
           while (changed) {
             changed = false;
             for (const f of s.files) {
-              if (f.parentId && toDelete.has(f.parentId) && !toDelete.has(f.id)) {
-                toDelete.add(f.id);
+              if (f.parentId && toTrash.has(f.parentId) && !toTrash.has(f.id)) {
+                toTrash.add(f.id);
                 changed = true;
               }
             }
           }
-          return { files: s.files.filter((f) => !toDelete.has(f.id)) };
+          const trashed = s.files
+            .filter((f) => toTrash.has(f.id))
+            .map((f) => ({ ...f, _origParent: f.parentId } as VFile & { _origParent?: string | null }));
+          return {
+            files: s.files.filter((f) => !toTrash.has(f.id)),
+            trash: [...trashed, ...s.trash],
+          };
         }),
+
+      restoreFile: (id) =>
+        set((s) => {
+          const item = s.trash.find((f) => f.id === id);
+          if (!item) return s;
+          // restore subtree (all items whose original ancestor chain includes id)
+          const toRestore = new Set<string>([id]);
+          let changed = true;
+          while (changed) {
+            changed = false;
+            for (const f of s.trash) {
+              const op = (f as VFile & { _origParent?: string | null })._origParent;
+              if (op && toRestore.has(op) && !toRestore.has(f.id)) {
+                toRestore.add(f.id);
+                changed = true;
+              }
+            }
+          }
+          const restored = s.trash
+            .filter((f) => toRestore.has(f.id))
+            .map((f) => {
+              const { _origParent, ...rest } = f as VFile & { _origParent?: string | null };
+              return { ...rest, parentId: _origParent ?? null };
+            });
+          return {
+            trash: s.trash.filter((f) => !toRestore.has(f.id)),
+            files: [...s.files, ...restored],
+          };
+        }),
+
+      purgeFile: (id) =>
+        set((s) => {
+          const toPurge = new Set<string>([id]);
+          let changed = true;
+          while (changed) {
+            changed = false;
+            for (const f of s.trash) {
+              const op = (f as VFile & { _origParent?: string | null })._origParent;
+              if (op && toPurge.has(op) && !toPurge.has(f.id)) {
+                toPurge.add(f.id);
+                changed = true;
+              }
+            }
+          }
+          return { trash: s.trash.filter((f) => !toPurge.has(f.id)) };
+        }),
+
+      emptyTrash: () => set({ trash: [] }),
+
+      addRecentFile: (entry) =>
+        set((s) => ({
+          recentFiles: [
+            { ...entry, time: Date.now() },
+            ...s.recentFiles.filter((r) => r.id !== entry.id),
+          ].slice(0, 12),
+        })),
 
       notify: (n) => {
         const notif: OSNotification = {
@@ -456,6 +533,27 @@ export const useOS = create<OSStore>()(
 
       setContextMenu: (cm) => set({ contextMenu: cm }),
 
+      toggleCommandPalette: (open) =>
+        set((s) => ({
+          commandPaletteOpen: open ?? !s.commandPaletteOpen,
+          startMenuOpen: false,
+          notifCenterOpen: false,
+        })),
+
+      cycleWindow: (direction = 1) => {
+        const s = get();
+        const visible = s.windows
+          .filter((w) => !w.minimized)
+          .sort((a, b) => b.zIndex - a.zIndex);
+        if (visible.length === 0) return;
+        const curIdx = visible.findIndex((w) => w.id === s.activeWindowId);
+        const nextIdx = (curIdx + direction + visible.length) % visible.length;
+        const target = visible[nextIdx];
+        if (target) get().focusWindow(target.id);
+      },
+
+      setSnapPreview: (s) => set({ snapPreview: s }),
+
       resetAll: () => {
         try {
           localStorage.removeItem('webos-store');
@@ -468,6 +566,8 @@ export const useOS = create<OSStore>()(
           apps: DEFAULT_APPS,
           settings: DEFAULT_SETTINGS,
           files: seedFiles(),
+          trash: [],
+          recentFiles: [],
           notifications: [],
           bookmarks: [],
           history: [],
@@ -478,11 +578,14 @@ export const useOS = create<OSStore>()(
     }),
     {
       name: 'webos-store',
+      version: APPS_VERSION,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         apps: s.apps,
         settings: s.settings,
         files: s.files,
+        trash: s.trash,
+        recentFiles: s.recentFiles,
         bookmarks: s.bookmarks,
         history: s.history,
         notifications: s.notifications,
@@ -490,15 +593,28 @@ export const useOS = create<OSStore>()(
       }),
       merge: (persisted, current) => {
         const p = (persisted || {}) as Partial<OSStore>;
+        // Re-sync builtin apps to the latest DEFAULT_APPS (keeps user-installed webapps).
+        const userApps = (p.apps || []).filter((a) => !a.builtin);
+        const apps = [...DEFAULT_APPS, ...userApps];
+        // De-duplicate by id (DEFAULT wins).
+        const seen = new Set<string>();
+        const deduped = apps.filter((a) => {
+          if (seen.has(a.id)) return false;
+          seen.add(a.id);
+          return true;
+        });
         return {
           ...current,
           ...p,
+          apps: deduped,
           phase: 'lock',
           windows: [],
           activeWindowId: null,
           zTop: 10,
           startMenuOpen: false,
           notifCenterOpen: false,
+          commandPaletteOpen: false,
+          snapPreview: null,
           contextMenu: null,
         };
       },

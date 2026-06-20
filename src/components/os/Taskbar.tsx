@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Wifi, Volume2, Bell, Search } from 'lucide-react';
 import { useOS } from '@/lib/os/store';
+import type { ContextMenuItem } from '@/lib/os/store';
+import { AppIcon } from './AppIcon';
 
 export function Taskbar() {
   const apps = useOS((s) => s.apps);
@@ -11,6 +13,8 @@ export function Taskbar() {
   const openApp = useOS((s) => s.openApp);
   const focusWindow = useOS((s) => s.focusWindow);
   const minimizeWindow = useOS((s) => s.minimizeWindow);
+  const closeWindow = useOS((s) => s.closeWindow);
+  const setContextMenu = useOS((s) => s.setContextMenu);
   const toggleStartMenu = useOS((s) => s.toggleStartMenu);
   const startMenuOpen = useOS((s) => s.startMenuOpen);
   const toggleNotifCenter = useOS((s) => s.toggleNotifCenter);
@@ -80,12 +84,34 @@ export function Taskbar() {
             <button
               key={app.id}
               onClick={() => handleClick(app.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                const ws = windows.filter((w) => w.appId === app.id);
+                const items: ContextMenuItem[] = [
+                  { label: `打开 ${app.name}`, icon: '➕', onClick: () => openApp(app.id) },
+                ];
+                if (ws.length > 0) items.push({ separator: true });
+                ws.forEach((w) =>
+                  items.push({
+                    label: w.title + (w.minimized ? ' (最小化)' : w.id === activeWindowId ? ' (活动)' : ''),
+                    icon: '▢',
+                    onClick: () => focusWindow(w.id),
+                  }),
+                );
+                if (ws.length > 1) {
+                  items.push({ separator: true });
+                  items.push({ label: '关闭所有窗口', icon: '✕', onClick: () => ws.forEach((w) => closeWindow(w.id)) });
+                }
+                setContextMenu({ open: true, x: e.clientX, y: e.clientY, items });
+              }}
               title={app.name}
               className={`relative flex items-center justify-center w-11 h-11 rounded-lg transition group ${
                 active ? 'bg-white/25' : has ? 'hover:bg-white/15' : 'hover:bg-white/15'
               }`}
             >
-              <span className="text-xl">{app.icon}</span>
+              <span className="transition-transform group-active:scale-90">
+                <AppIcon icon={app.icon} color={app.color} size={26} rounded="rounded-lg" />
+              </span>
               {has && (
                 <span
                   className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-white transition-all ${

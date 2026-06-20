@@ -91,6 +91,9 @@ export function TextEditor({ win }: { win: WindowInstance }) {
   if (effectiveId !== prevEffId) {
     setPrevEffId(effectiveId);
     setText(selected?.content ?? '');
+    if (effectiveId && selected) {
+      useOS.getState().addRecentFile({ id: effectiveId, name: selected.name, appId: 'texteditor' });
+    }
   }
 
   // Focus editor when a file is opened.

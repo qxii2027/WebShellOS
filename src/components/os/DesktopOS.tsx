@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useOS } from '@/lib/os/store';
 import { BootScreen } from './BootScreen';
 import { LockScreen } from './LockScreen';
@@ -9,8 +10,12 @@ import { Taskbar } from './Taskbar';
 import { StartMenu } from './StartMenu';
 import { ContextMenu } from './ContextMenu';
 import { NotificationCenter } from './NotificationCenter';
+import { CommandPalette } from './CommandPalette';
+import { WindowSwitcher } from './WindowSwitcher';
+import { SnapOverlay } from './SnapOverlay';
 import { Window } from './Window';
 import { MobileShell } from './MobileShell';
+import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 export function DesktopOS() {
   const phase = useOS((s) => s.phase);
@@ -38,7 +43,12 @@ export function DesktopOS() {
     if (theme === 'dark') root.classList.add('dark');
     else root.classList.remove('dark');
     root.style.setProperty('--accent-color', accent);
+    // expose accent as --primary-ish for range thumbs etc.
+    root.style.setProperty('--accent', accent);
   }, [theme, accent]);
+
+  // global keyboard shortcuts (desktop only)
+  useGlobalShortcuts(isMobile);
 
   // welcome notification after first boot to desktop
   useEffect(() => {
@@ -46,7 +56,7 @@ export function DesktopOS() {
       const t = setTimeout(() => {
         notify({
           title: '欢迎使用 WebOS',
-          body: '点击左下角 ⊞ 打开开始菜单，右键桌面更换壁纸。',
+          body: '点击左下角打开开始菜单，按 Ctrl+K 打开命令面板，右键桌面更换壁纸。',
           icon: '👋',
         });
       }, 1200);
@@ -67,18 +77,23 @@ export function DesktopOS() {
       ) : (
         <>
           <Desktop>
-            {windows
-              .slice()
-              .sort((a, b) => a.zIndex - b.zIndex)
-              .map((win) => {
-                const app = apps.find((a) => a.id === win.appId);
-                if (!app) return null;
-                return <Window key={win.id} win={win} app={app} />;
-              })}
+            <AnimatePresence>
+              {windows
+                .slice()
+                .sort((a, b) => a.zIndex - b.zIndex)
+                .map((win) => {
+                  const app = apps.find((a) => a.id === win.appId);
+                  if (!app) return null;
+                  return <Window key={win.id} win={win} app={app} />;
+                })}
+            </AnimatePresence>
           </Desktop>
           <Taskbar />
           <StartMenu />
           <NotificationCenter />
+          <CommandPalette />
+          <WindowSwitcher />
+          <SnapOverlay />
         </>
       )}
       <ContextMenu />

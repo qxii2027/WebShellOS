@@ -4,9 +4,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'browser',
     name: '浏览器',
-    icon: '🌐',
+    icon: 'globe',
     component: 'browser',
-    color: 'from-sky-400 to-cyan-500',
+    color: 'from-sky-500 to-cyan-600',
     builtin: true,
     defaultSize: { width: 980, height: 660 },
     minSize: { width: 420, height: 360 },
@@ -14,9 +14,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'filemanager',
     name: '文件管理器',
-    icon: '📁',
+    icon: 'folder',
     component: 'filemanager',
-    color: 'from-amber-400 to-orange-500',
+    color: 'from-amber-500 to-orange-600',
     builtin: true,
     defaultSize: { width: 820, height: 560 },
     minSize: { width: 360, height: 320 },
@@ -24,9 +24,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'appstore',
     name: '应用商店',
-    icon: '🛍️',
+    icon: 'shopping',
     component: 'appstore',
-    color: 'from-rose-400 to-pink-500',
+    color: 'from-rose-500 to-pink-600',
     builtin: true,
     defaultSize: { width: 900, height: 620 },
     minSize: { width: 380, height: 420 },
@@ -34,9 +34,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'settings',
     name: '设置',
-    icon: '⚙️',
+    icon: 'settings',
     component: 'settings',
-    color: 'from-slate-400 to-slate-600',
+    color: 'from-slate-500 to-slate-700',
     builtin: true,
     defaultSize: { width: 780, height: 560 },
     minSize: { width: 360, height: 380 },
@@ -44,9 +44,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'texteditor',
     name: '记事本',
-    icon: '📝',
+    icon: 'filetext',
     component: 'texteditor',
-    color: 'from-yellow-300 to-amber-500',
+    color: 'from-yellow-500 to-amber-600',
     builtin: true,
     defaultSize: { width: 720, height: 540 },
     minSize: { width: 320, height: 280 },
@@ -54,9 +54,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'calculator',
     name: '计算器',
-    icon: '🧮',
+    icon: 'calculator',
     component: 'calculator',
-    color: 'from-emerald-400 to-teal-500',
+    color: 'from-emerald-500 to-teal-600',
     builtin: true,
     defaultSize: { width: 340, height: 540 },
     minSize: { width: 300, height: 480 },
@@ -64,9 +64,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'terminal',
     name: '终端',
-    icon: '🖥️',
+    icon: 'terminal',
     component: 'terminal',
-    color: 'from-gray-700 to-gray-900',
+    color: 'from-zinc-700 to-zinc-900',
     builtin: true,
     defaultSize: { width: 720, height: 460 },
     minSize: { width: 360, height: 260 },
@@ -74,9 +74,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'musicplayer',
     name: '音乐',
-    icon: '🎵',
+    icon: 'music',
     component: 'musicplayer',
-    color: 'from-fuchsia-400 to-purple-600',
+    color: 'from-fuchsia-500 to-purple-600',
     builtin: true,
     defaultSize: { width: 420, height: 600 },
     minSize: { width: 360, height: 520 },
@@ -84,9 +84,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'imageviewer',
     name: '相册',
-    icon: '🖼️',
+    icon: 'image',
     component: 'imageviewer',
-    color: 'from-lime-400 to-green-600',
+    color: 'from-lime-500 to-green-600',
     builtin: true,
     defaultSize: { width: 840, height: 600 },
     minSize: { width: 380, height: 360 },
@@ -94,9 +94,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'paint',
     name: '画图',
-    icon: '🎨',
+    icon: 'palette',
     component: 'paint',
-    color: 'from-pink-400 to-rose-600',
+    color: 'from-pink-500 to-rose-600',
     builtin: true,
     defaultSize: { width: 820, height: 600 },
     minSize: { width: 420, height: 380 },
@@ -104,9 +104,9 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'clock',
     name: '时钟',
-    icon: '⏰',
+    icon: 'clock',
     component: 'clock',
-    color: 'from-indigo-400 to-violet-600',
+    color: 'from-indigo-500 to-violet-600',
     builtin: true,
     defaultSize: { width: 560, height: 460 },
     minSize: { width: 360, height: 380 },
@@ -114,14 +114,17 @@ export const DEFAULT_APPS: AppDef[] = [
   {
     id: 'about',
     name: '关于系统',
-    icon: 'ℹ️',
+    icon: 'info',
     component: 'about',
-    color: 'from-blue-400 to-cyan-600',
+    color: 'from-blue-500 to-cyan-600',
     builtin: true,
     defaultSize: { width: 560, height: 480 },
     minSize: { width: 360, height: 380 },
   },
 ];
+
+// Bump this when DEFAULT_APPS structure changes so persisted state migrates.
+export const APPS_VERSION = 2;
 
 export interface WallpaperDef {
   id: string;
@@ -176,6 +179,34 @@ export const WALLPAPERS: WallpaperDef[] = [
     id: 'ember',
     name: '余烬',
     css: 'radial-gradient(circle at 30% 20%, #f59e0b 0%, transparent 40%), radial-gradient(circle at 70% 70%, #dc2626 0%, transparent 45%), linear-gradient(135deg, #1c1917, #292524)',
+    dark: true,
+  },
+  {
+    id: 'monolith',
+    name: '巨石',
+    css: 'radial-gradient(at 50% 0%, #1e293b 0%, transparent 60%), radial-gradient(at 50% 100%, #334155 0%, transparent 60%), linear-gradient(180deg, #020617, #0f172a)',
+    dark: true,
+  },
+  {
+    id: 'mist',
+    name: '薄雾',
+    css: 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #94a3b8 100%)',
+  },
+  {
+    id: 'bloom',
+    name: '绽放',
+    css: 'radial-gradient(at 0% 0%, #8b5cf6 0px, transparent 50%), radial-gradient(at 100% 100%, #ec4899 0px, transparent 50%), radial-gradient(at 50% 50%, #06b6d4 0px, transparent 60%), linear-gradient(135deg, #1e1b4b, #0f172a)',
+    dark: true,
+  },
+  {
+    id: 'sand',
+    name: '沙丘',
+    css: 'linear-gradient(135deg, #fef3c7 0%, #fcd34d 40%, #d97706 100%)',
+  },
+  {
+    id: 'night',
+    name: '夜空',
+    css: 'radial-gradient(2px 2px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 60% 70%, #fff, transparent), radial-gradient(1.5px 1.5px at 80% 20%, #fff, transparent), radial-gradient(1px 1px at 35% 85%, #fff, transparent), radial-gradient(2px 2px at 90% 50%, #fff, transparent), linear-gradient(180deg, #020617, #1e1b4b)',
     dark: true,
   },
 ];

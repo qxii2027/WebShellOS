@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Minus, Square, X, Copy } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useOS } from '@/lib/os/store';
 import type { WindowInstance, AppDef } from '@/lib/os/types';
 import { useWindowDrag, useWindowResize } from './useWindowDrag';
 import { AppRenderer } from './AppRenderer';
+import { AppIcon, WebappIcon } from './AppIcon';
 
 const RESIZE_HANDLES = [
   { dir: 'n', cls: 'top-0 left-2 right-2 h-1.5 cursor-ns-resize' },
@@ -32,15 +33,6 @@ export function Window({ win, app }: { win: WindowInstance; app: AppDef }) {
 
   const isActive = activeWindowId === win.id;
 
-  // animate minimize
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 10);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (win.minimized) return null;
-
   const style: React.CSSProperties = win.maximized
     ? {
         left: 0,
@@ -57,15 +49,27 @@ export function Window({ win, app }: { win: WindowInstance; app: AppDef }) {
         zIndex: win.zIndex,
       };
 
+  const motionTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 380, damping: 32, mass: 0.7 };
+
   return (
-    <div
+    <motion.div
       className={`absolute flex flex-col overflow-hidden bg-card text-card-foreground shadow-2xl border ${
         isActive ? 'border-border ring-1 ring-black/5 dark:ring-white/10' : 'border-border/60'
-      } ${win.maximized ? 'rounded-none' : 'rounded-xl'} ${
-        mounted && !reduceMotion ? 'win-pop' : ''
-      }`}
+      } ${win.maximized ? 'rounded-none' : 'rounded-xl'} ${win.minimized ? 'pointer-events-none' : ''}`}
       style={style}
+      layout={false}
+      initial={{ opacity: 0, scale: 0.94, y: 12 }}
+      animate={
+        win.minimized
+          ? { opacity: 0, scale: 0.85, y: 240, pointerEvents: 'none' as const }
+          : { opacity: 1, scale: 1, y: 0, pointerEvents: 'auto' as const }
+      }
+      exit={{ opacity: 0, scale: 0.94, transition: { duration: reduceMotion ? 0 : 0.15 } }}
+      transition={motionTransition}
       onPointerDown={() => focusWindow(win.id)}
+      aria-hidden={win.minimized}
     >
       {/* Title bar */}
       <div
@@ -82,21 +86,21 @@ export function Window({ win, app }: { win: WindowInstance; app: AppDef }) {
           <button
             aria-label="关闭"
             onClick={() => closeWindow(win.id)}
-            className="group relative w-3.5 h-3.5 rounded-full bg-red-500 hover:brightness-110 flex items-center justify-center"
+            className="group relative w-3.5 h-3.5 rounded-full bg-red-500 hover:brightness-110 flex items-center justify-center transition"
           >
             <X className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100" strokeWidth={3} />
           </button>
           <button
             aria-label="最小化"
             onClick={() => minimizeWindow(win.id)}
-            className="group relative w-3.5 h-3.5 rounded-full bg-yellow-500 hover:brightness-110 flex items-center justify-center"
+            className="group relative w-3.5 h-3.5 rounded-full bg-yellow-500 hover:brightness-110 flex items-center justify-center transition"
           >
             <Minus className="w-2 h-2 text-yellow-900 opacity-0 group-hover:opacity-100" strokeWidth={3} />
           </button>
           <button
             aria-label="最大化"
             onClick={() => toggleMaximize(win.id)}
-            className="group relative w-3.5 h-3.5 rounded-full bg-green-500 hover:brightness-110 flex items-center justify-center"
+            className="group relative w-3.5 h-3.5 rounded-full bg-green-500 hover:brightness-110 flex items-center justify-center transition"
           >
             {win.maximized ? (
               <Copy className="w-2 h-2 text-green-900 opacity-0 group-hover:opacity-100" strokeWidth={3} />
@@ -106,7 +110,11 @@ export function Window({ win, app }: { win: WindowInstance; app: AppDef }) {
           </button>
         </div>
         <div className="flex items-center gap-2 flex-1 min-w-0 px-1">
-          <span className="text-sm leading-none">{win.icon}</span>
+          {app.url ? (
+            <WebappIcon url={app.url} name={app.name} size={18} rounded="rounded-md" />
+          ) : (
+            <AppIcon icon={app.icon} color={app.color} size={18} rounded="rounded-md" />
+          )}
           <span className="text-xs font-medium truncate">{win.title}</span>
         </div>
         <div className="w-12" />
@@ -128,6 +136,6 @@ export function Window({ win, app }: { win: WindowInstance; app: AppDef }) {
             onPointerUp={onUp}
           />
         ))}
-    </div>
+    </motion.div>
   );
 }

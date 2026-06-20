@@ -5,6 +5,7 @@ import { ChevronLeft, X, Search, Wifi, BatteryFull, Signal } from 'lucide-react'
 import { useOS } from '@/lib/os/store';
 import { getWallpaperCss } from '@/lib/os/defaultApps';
 import { AppRenderer } from './AppRenderer';
+import { AppIcon, WebappIcon } from './AppIcon';
 
 export function MobileShell() {
   const apps = useOS((s) => s.apps);
@@ -82,11 +83,7 @@ export function MobileShell() {
                 onClick={() => openApp(app.id)}
                 className="flex flex-col items-center gap-1.5 active:scale-95 transition"
               >
-                <span
-                  className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${app.color || 'from-slate-400 to-slate-600'} flex items-center justify-center text-3xl shadow-lg ring-1 ring-black/10`}
-                >
-                  {app.icon}
-                </span>
+                <AppIcon icon={app.icon} color={app.color} size={56} />
                 <span className="text-xs font-medium drop-shadow text-center line-clamp-1 w-full">
                   {app.name}
                 </span>
@@ -107,11 +104,11 @@ export function MobileShell() {
                   onClick={() => openApp(id)}
                   className="active:scale-90 transition"
                 >
-                  <span
-                    className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${app.color} flex items-center justify-center text-2xl shadow-lg ring-1 ring-black/10`}
-                  >
-                    {app.icon}
-                  </span>
+                    {app.url ? (
+                      <WebappIcon url={app.url} name={app.name} size={48} />
+                    ) : (
+                      <AppIcon icon={app.icon} color={app.color} size={48} />
+                    )}
                 </button>
               );
             })}
@@ -140,7 +137,11 @@ export function MobileShell() {
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <span className="text-base">{activeApp.icon}</span>
+        {activeApp.url ? (
+          <WebappIcon url={activeApp.url} name={activeApp.name} size={22} rounded="rounded-md" />
+        ) : (
+          <AppIcon icon={activeApp.icon} color={activeApp.color} size={22} rounded="rounded-md" />
+        )}
         <span className="text-sm font-medium truncate flex-1">{activeWin.title}</span>
         <button
           onClick={() => closeWindow(activeWin.id)}

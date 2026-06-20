@@ -101,3 +101,28 @@ Stage Summary:
 - All core requirements met: pseudo-OS with normal system functions, installable web apps, full browser, local data persistence, smooth mobile + desktop UX.
 - 12 built-in apps + installable website apps. Data persists in localStorage across reloads.
 - Browser-verified: boot/lock/desktop, start menu, window management, app store install, browser navigation+iframe, mobile home/fullscreen/home navigation, persistence.
+
+---
+Task ID: UI-OPT
+Agent: main
+Task: Optimize UI (reduce colorful emojis), optimize animations, add more features — without changing existing functionality
+
+Work Log:
+- Built AppIcon component (src/components/os/AppIcon.tsx): maps lucide icon names (globe, folder, shopping, settings, filetext, calculator, terminal, music, image, palette, clock, info, trash, etc.) to Lucide icons rendered white-on-gradient. WebappIcon generates a deterministic letter+gradient avatar from a URL (replaces emoji for installed web apps).
+- Migrated DEFAULT_APPS from emoji icons (🌐📁🛍️⚙️📝🧮🖥️🎵🖼️🎨⏰ℹ️) to lucide icon names; deepened gradient colors. Added APPS_VERSION=2 + store persist migration that re-syncs builtin apps to latest defaults while keeping user-installed webapps (de-dup by id).
+- Replaced emoji app icons across Desktop, Taskbar, StartMenu, MobileShell, Window title bar, WebApp bar, AppStore (catalog + installed list + custom install), Browser new-tab logo, FileManager file icons (big folder/file/image icons now tinted lucide on rounded squares).
+- Added 5 new wallpapers (monolith, mist, bloom, sand, night).
+- Animations (framer-motion): Window open/close/minimize via spring (scale+y+opacity); minimized windows stay mounted (pointer-events-none) so audio/content keeps running. Desktop icons stagger-in on boot. StartMenu spring entrance/exit via AnimatePresence. CommandPalette + SnapOverlay spring. All respect settings.reduceMotion.
+- New feature: Command Palette (Ctrl+K) — searches apps, files, and actions (open settings, toggle theme, lock, restart, shutdown); keyboard nav (↑↓ Enter), grouped sections, recent-aware.
+- New feature: Global keyboard shortcuts (useGlobalShortcuts hook) — Ctrl/Cmd+K (palette), Alt+Tab / Alt+Shift+Tab (cycle windows), Meta (start menu), Escape (close menus). WindowSwitcher overlay shows open windows while Alt is held.
+- New feature: Window snap zones — dragging to left/right edges shows a live SnapOverlay preview and snaps on release; top edge still maximizes (with preview). 
+- New feature: Recycle Bin — deleteFile now soft-deletes to trash (preserving subtree + original parent); restoreFile, purgeFile, emptyTrash added. FileManager has a Trash sidebar entry + trash view (restore/permanent-delete/empty). Desktop has a Trash icon with a count badge. Verified: delete→trash (1 item)→restore→files restored.
+- New feature: Desktop clock widget (top-right), Recent files section in Start Menu (tracked via addRecentFile in FileManager.openItem + TextEditor file selection).
+- New feature: Taskbar app right-click context menu — lists the app's open windows (focus), "open new", "close all windows".
+- Verification (Agent Browser): desktop renders clean vector icons (VLM confirmed no emojis), clock widget, recycle bin icon. Ctrl+K palette opens, searches "计算", opens calculator. File manager: list-view delete moves file to trash (files 4→3, trash 0→1), trash view shows item with restore/empty, restore returns file (files→4, trash→0). Alt+Tab cycles windows. Mobile home screen shows clean gradient icons + dock (VLM confirmed). Final ESLint: 0 errors, 0 warnings. No runtime errors.
+
+Stage Summary:
+- UI: all app/file icons are now clean Lucide vector icons on gradients; colorful emojis removed from chrome.
+- Animations: spring-based window/menu/palette/snap transitions with reduced-motion support.
+- New features (all additive, original functionality unchanged): Command Palette, Alt+Tab switcher + keyboard shortcuts, window snap zones with preview, Recycle Bin (soft-delete/restore/empty), desktop clock widget, recent files in Start Menu, taskbar right-click window list, 5 new wallpapers.
+- Data migration: APPS_VERSION=2 ensures existing localStorage users get refreshed builtin apps while keeping installed webapps.

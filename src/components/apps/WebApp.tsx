@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { RotateCw, ExternalLink, AlertCircle } from 'lucide-react';
 import type { WindowInstance, AppDef } from '@/lib/os/types';
+import { WebappIcon } from '@/components/os/AppIcon';
 
 export function WebApp({ win, app }: { win: WindowInstance; app: AppDef }) {
   const [reloadKey, setReloadKey] = useState(0);
@@ -26,7 +27,7 @@ export function WebApp({ win, app }: { win: WindowInstance; app: AppDef }) {
   return (
     <div className="flex flex-col h-full bg-white relative">
       <div className="flex items-center gap-2 h-9 px-2 bg-muted/50 border-b border-border shrink-0">
-        <span className="text-sm">{app.icon}</span>
+        <WebappIcon url={app.url || ''} name={app.name} size={20} rounded="rounded-md" />
         <span className="text-xs text-muted-foreground truncate flex-1">{app.name}</span>
         <button
           onClick={reload}

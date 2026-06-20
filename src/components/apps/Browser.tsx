@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useOS, uid } from '@/lib/os/store';
 import type { WindowInstance } from '@/lib/os/types';
+import { AppIcon } from '@/components/os/AppIcon';
 
 interface Tab {
   id: string;
@@ -466,8 +467,8 @@ function NewTabPage({
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-10 flex flex-col items-center">
-        <div className="text-5xl mb-1">🌐</div>
-        <h1 className="text-2xl font-light mb-6 text-foreground">WebOS 浏览器</h1>
+        <AppIcon icon="globe" color="from-sky-500 to-cyan-600" size={64} rounded="rounded-2xl" />
+        <h1 className="text-2xl font-light mt-3 mb-6 text-foreground">WebOS 浏览器</h1>
         <div className="w-full flex items-center gap-2 h-12 px-4 rounded-full bg-white dark:bg-slate-800 border border-border shadow-sm">
           <Search className="w-5 h-5 text-muted-foreground" />
           <input

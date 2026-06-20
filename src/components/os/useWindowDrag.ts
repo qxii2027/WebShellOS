@@ -55,17 +55,39 @@ export function useWindowDrag(win: WindowInstance) {
       ny = Math.max(0, Math.min(vh - 60, ny));
       moveWindow(win.id, nx, ny);
 
-      // snap preview threshold
-      if (e.clientY <= 2) {
+      // snap zone detection with live preview
+      const setSnapPreview = useOS.getState().setSnapPreview;
+      const snap = useOS.getState().snapWindow;
+      const atTop = e.clientY <= 4;
+      const atLeft = e.clientX <= 4;
+      const atRight = e.clientX >= vw - 4;
+      if (atTop) {
+        setSnapPreview('max');
         if (!snapeRef.current) {
           snapeRef.current = setTimeout(() => {
-            snapWindow(win.id, 'max');
+            snap(win.id, 'max');
             dragRef.current = null;
+            setSnapPreview(null);
           }, 350);
         }
-      } else if (snapeRef.current) {
-        clearTimeout(snapeRef.current);
-        snapeRef.current = null;
+      } else if (atLeft) {
+        setSnapPreview('left');
+        if (snapeRef.current) {
+          clearTimeout(snapeRef.current);
+          snapeRef.current = null;
+        }
+      } else if (atRight) {
+        setSnapPreview('right');
+        if (snapeRef.current) {
+          clearTimeout(snapeRef.current);
+          snapeRef.current = null;
+        }
+      } else {
+        setSnapPreview(null);
+        if (snapeRef.current) {
+          clearTimeout(snapeRef.current);
+          snapeRef.current = null;
+        }
       }
     },
     [win.id, win.width, moveWindow, snapWindow],
@@ -73,10 +95,17 @@ export function useWindowDrag(win: WindowInstance) {
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
+      const setSnapPreview = useOS.getState().setSnapPreview;
+      const snap = useOS.getState().snapWindow;
+      const sp = useOS.getState().snapPreview;
       if (snapeRef.current) {
         clearTimeout(snapeRef.current);
         snapeRef.current = null;
       }
+      // apply left/right snap on release if preview was showing
+      if (sp === 'left') snap(win.id, 'left');
+      else if (sp === 'right') snap(win.id, 'right');
+      setSnapPreview(null);
       if (dragRef.current && dragRef.current.pointerId === e.pointerId) {
         try {
           (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
@@ -84,7 +113,7 @@ export function useWindowDrag(win: WindowInstance) {
         dragRef.current = null;
       }
     },
-    [],
+    [win.id],
   );
 
   const onDouble = useCallback(() => {

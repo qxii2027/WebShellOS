@@ -4,32 +4,29 @@ import { useState } from 'react';
 import { Download, Trash2, Check, Search, Globe, Plus } from 'lucide-react';
 import { useOS, uid } from '@/lib/os/store';
 import type { WindowInstance } from '@/lib/os/types';
+import { WebappIcon } from '@/components/os/AppIcon';
 
 interface CatalogItem {
   name: string;
   url: string;
-  icon: string;
-  color: string;
   category: string;
   desc: string;
 }
 
 const CATALOG: CatalogItem[] = [
-  { name: 'Bing', url: 'https://www.bing.com', icon: '🔍', color: 'from-sky-400 to-blue-600', category: '搜索', desc: '微软搜索引擎' },
-  { name: 'Wikipedia', url: 'https://www.wikipedia.org', icon: '📚', color: 'from-slate-500 to-slate-700', category: '参考', desc: '自由的百科全书' },
-  { name: 'GitHub', url: 'https://github.com', icon: '🐙', color: 'from-gray-700 to-gray-900', category: '开发', desc: '全球最大代码托管平台' },
-  { name: 'MDN', url: 'https://developer.mozilla.org', icon: '📖', color: 'from-blue-500 to-indigo-700', category: '开发', desc: 'Web 开发者文档' },
-  { name: 'CodePen', url: 'https://codepen.io', icon: '✏️', color: 'from-gray-600 to-gray-800', category: '开发', desc: '在线代码编辑器' },
-  { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: '💡', color: 'from-orange-400 to-orange-600', category: '开发', desc: '编程问答社区' },
-  { name: 'Hacker News', url: 'https://news.ycombinator.com', icon: '📰', color: 'from-orange-500 to-amber-600', category: '资讯', desc: '黑客新闻' },
-  { name: 'Reddit', url: 'https://www.reddit.com', icon: '👽', color: 'from-orange-500 to-red-600', category: '社区', desc: '兴趣社区' },
-  { name: 'Z.ai', url: 'https://chat.z.ai', icon: '🤖', color: 'from-violet-500 to-purple-700', category: 'AI', desc: 'AI 对话助手' },
-  { name: 'Example', url: 'https://example.com', icon: '🌐', color: 'from-emerald-400 to-teal-600', category: '其他', desc: '示例网站' },
-  { name: 'Lobsters', url: 'https://lobste.rs', icon: '🦞', color: 'from-red-500 to-rose-700', category: '资讯', desc: '技术链接聚合' },
-  { name: 'Project Gutenberg', url: 'https://www.gutenberg.org', icon: '📕', color: 'from-amber-500 to-yellow-700', category: '阅读', desc: '免费电子书' },
+  { name: 'Bing', url: 'https://www.bing.com', category: '搜索', desc: '微软搜索引擎' },
+  { name: 'Wikipedia', url: 'https://www.wikipedia.org', category: '参考', desc: '自由的百科全书' },
+  { name: 'GitHub', url: 'https://github.com', category: '开发', desc: '全球最大代码托管平台' },
+  { name: 'MDN', url: 'https://developer.mozilla.org', category: '开发', desc: 'Web 开发者文档' },
+  { name: 'CodePen', url: 'https://codepen.io', category: '开发', desc: '在线代码编辑器' },
+  { name: 'Stack Overflow', url: 'https://stackoverflow.com', category: '开发', desc: '编程问答社区' },
+  { name: 'Hacker News', url: 'https://news.ycombinator.com', category: '资讯', desc: '黑客新闻' },
+  { name: 'Reddit', url: 'https://www.reddit.com', category: '社区', desc: '兴趣社区' },
+  { name: 'Z.ai', url: 'https://chat.z.ai', category: 'AI', desc: 'AI 对话助手' },
+  { name: 'Example', url: 'https://example.com', category: '其他', desc: '示例网站' },
+  { name: 'Lobsters', url: 'https://lobste.rs', category: '资讯', desc: '技术链接聚合' },
+  { name: 'Project Gutenberg', url: 'https://www.gutenberg.org', category: '阅读', desc: '免费电子书' },
 ];
-
-const ICON_OPTIONS = ['🌐', '🚀', '⚡', '🎮', '📺', '🎵', '📷', '💬', '📰', '🛒', '📊', '🔧', '🎯', '🌟', '🔥', '💎'];
 
 export function AppStore({ win }: { win: WindowInstance }) {
   const apps = useOS((s) => s.apps);
@@ -42,7 +39,6 @@ export function AppStore({ win }: { win: WindowInstance }) {
   const [category, setCategory] = useState('全部');
   const [customUrl, setCustomUrl] = useState('');
   const [customName, setCustomName] = useState('');
-  const [customIcon, setCustomIcon] = useState('🌐');
 
   const installedIds = new Set(apps.map((a) => a.id));
 
@@ -55,7 +51,7 @@ export function AppStore({ win }: { win: WindowInstance }) {
 
   const installedApps = apps.filter((a) => !a.builtin);
 
-  const install = (item: CatalogItem | { name: string; url: string; icon: string; color: string }) => {
+  const install = (item: { name: string; url: string }) => {
     const id = 'webapp_' + new URL(item.url).hostname.replace(/[^a-z0-9]/gi, '_');
     if (installedIds.has(id)) {
       notify({ title: '已安装', body: `${item.name} 已经安装过了`, icon: '📦' });
@@ -64,9 +60,9 @@ export function AppStore({ win }: { win: WindowInstance }) {
     installApp({
       id,
       name: item.name,
-      icon: item.icon,
+      icon: '',
       component: 'webapp',
-      color: item.color,
+      color: '',
       url: item.url,
       defaultSize: { width: 980, height: 660 },
       minSize: { width: 360, height: 360 },
@@ -81,10 +77,9 @@ export function AppStore({ win }: { win: WindowInstance }) {
     const name = customName.trim() || (() => {
       try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
     })();
-    install({ name, url, icon: customIcon, color: 'from-sky-400 to-cyan-600' });
+    install({ name, url });
     setCustomUrl('');
     setCustomName('');
-    setCustomIcon('🌐');
   };
 
   return (
@@ -156,11 +151,7 @@ export function AppStore({ win }: { win: WindowInstance }) {
                       key={app.id}
                       className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:shadow-sm transition"
                     >
-                      <span
-                        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${app.color} flex items-center justify-center text-2xl shadow shrink-0`}
-                      >
-                        {app.icon}
-                      </span>
+                      <WebappIcon url={app.url || ''} name={app.name} size={48} />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{app.name}</div>
                         <div className="text-xs text-muted-foreground truncate">{app.url}</div>
@@ -213,19 +204,9 @@ export function AppStore({ win }: { win: WindowInstance }) {
                     <Download className="w-4 h-4" /> 安装
                   </button>
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  {ICON_OPTIONS.map((ic) => (
-                    <button
-                      key={ic}
-                      onClick={() => setCustomIcon(ic)}
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition ${
-                        customIcon === ic ? 'bg-primary/20 ring-1 ring-primary' : 'hover:bg-accent'
-                      }`}
-                    >
-                      {ic}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  应用图标将根据网址自动生成。
+                </p>
               </div>
 
               <h2 className="text-lg font-semibold mb-3">
@@ -241,11 +222,7 @@ export function AppStore({ win }: { win: WindowInstance }) {
                       className="p-3 rounded-xl border border-border bg-card hover:shadow-md transition flex flex-col gap-3"
                     >
                       <div className="flex items-center gap-3">
-                        <span
-                          className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-2xl shadow shrink-0`}
-                        >
-                          {item.icon}
-                        </span>
+                        <WebappIcon url={item.url} name={item.name} size={48} />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{item.name}</div>
                           <div className="text-xs text-muted-foreground truncate">{item.desc}</div>

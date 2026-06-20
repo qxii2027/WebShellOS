@@ -52,7 +52,16 @@ export function TextEditor({ win }: { win: WindowInstance }) {
   const [selectedId, setSelectedId] = useState<string | null>(
     () => (win.state && typeof win.state.fileId === 'string' ? (win.state.fileId as string) : null),
   );
-  const [text, setText] = useState('');
+  // Initialize the editor text from the effective file's content so that
+  // reopening a saved document shows its persisted content on first render.
+  const [text, setText] = useState<string>(() => {
+    const id =
+      (win.state && typeof win.state.fileId === 'string' ? (win.state.fileId as string) : null) ??
+      files.find(isTextFile)?.id ??
+      null;
+    const f = id ? files.find((x) => x.id === id) : null;
+    return f?.content ?? '';
+  });
   const [fontSize, setFontSize] = useState(14);
   const [mono, setMono] = useState(false);
 

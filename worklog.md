@@ -139,3 +139,28 @@ Work Log:
 
 Stage Summary:
 - Crash resolved. Recent-file tracking still works end-to-end (TextEditor + FileManager → Start Menu recent section) without violating React's render-purity rules.
+
+---
+Task ID: FIX-texteditor-reopen
+Agent: main
+Task: Fix "saved document edits don't appear after reopening TextEditor"
+
+Work Log:
+- Reproduced: opened TextEditor, textarea showed "" (empty) even though the file "欢迎.txt" had content in the store. Confirmed the editor was never loading persisted content on mount.
+- Root cause: `text` state was initialized to `''` (useState('')), and the render-time sync block (`if (effectiveId !== prevEffId)`) was guarded by `prevEffId` which was ALSO initialized to `effectiveId` — so on the very first render the condition was false and `setText(file.content)` never ran. The file switch path worked (effectiveId changes → block fires), but the initial mount path was broken, so reopening a document showed an empty editor.
+- Fix: changed `useState('')` to a lazy initializer that reads the effective file's content from the store:
+    const [text, setText] = useState<string>(() => {
+      const id = win.state?.fileId ?? files.find(isTextFile)?.id ?? null;
+      const f = id ? files.find((x) => x.id === id) : null;
+      return f?.content ?? '';
+    });
+  The render-time adjustment block still handles subsequent file switches.
+- Verified with Agent Browser end-to-end:
+  1. Opened TextEditor → textarea now shows "欢迎使用 WebOS！..." (loaded from store). ✓
+  2. Typed "[MARKER_LINE]" via native value setter + input event → clicked 保存 → store file content tail = "...[MARKER_LINE]". ✓
+  3. Closed the TextEditor window → reopened via taskbar → textarea shows "...点击左下角开始菜单打开应用。\n[MARKER_LINE]" (edits persisted and reloaded). ✓
+  4. No console errors. Cleaned up the marker and re-saved.
+- Final ESLint: 0 errors, 0 warnings.
+
+Stage Summary:
+- Document edits now persist and reappear when reopening the TextEditor. The bug was a missing lazy initialization of the editor text from the file's stored content; file-switch syncing already worked.

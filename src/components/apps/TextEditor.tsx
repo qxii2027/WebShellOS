@@ -87,21 +87,24 @@ export function TextEditor({ win }: { win: WindowInstance }) {
   );
 
   // Sync local text when the effective file changes (render-time adjustment).
+  // NOTE: only local state here — store updates go in the effect below to avoid
+  // triggering a setState in another component during render.
   const [prevEffId, setPrevEffId] = useState<string | null>(effectiveId);
   if (effectiveId !== prevEffId) {
     setPrevEffId(effectiveId);
     setText(selected?.content ?? '');
-    if (effectiveId && selected) {
-      useOS.getState().addRecentFile({ id: effectiveId, name: selected.name, appId: 'texteditor' });
-    }
   }
 
-  // Focus editor when a file is opened.
+  // Track recent file + focus editor when the effective file changes.
   useEffect(() => {
     if (!effectiveId) return;
+    const sel = files.find((f) => f.id === effectiveId);
+    if (sel) {
+      useOS.getState().addRecentFile({ id: effectiveId, name: sel.name, appId: 'texteditor' });
+    }
     const t = setTimeout(() => taRef.current?.focus(), 20);
     return () => clearTimeout(t);
-  }, [effectiveId]);
+  }, [effectiveId, files]);
 
   // Update window title when the selected file's name changes
   useEffect(() => {

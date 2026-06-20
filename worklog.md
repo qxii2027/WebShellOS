@@ -126,3 +126,16 @@ Stage Summary:
 - Animations: spring-based window/menu/palette/snap transitions with reduced-motion support.
 - New features (all additive, original functionality unchanged): Command Palette, Alt+Tab switcher + keyboard shortcuts, window snap zones with preview, Recycle Bin (soft-delete/restore/empty), desktop clock widget, recent files in Start Menu, taskbar right-click window list, 5 new wallpapers.
 - Data migration: APPS_VERSION=2 ensures existing localStorage users get refreshed builtin apps while keeping installed webapps.
+
+---
+Task ID: FIX-render-setstate
+Agent: main
+Task: Fix console error "Cannot update a component (StartMenu) while rendering a different component (TextEditor)"
+
+Work Log:
+- Root cause: TextEditor's render-time adjustment block called useOS.getState().addRecentFile(...) (a Zustand set()) during render. StartMenu subscribes to recentFiles, so React detected a cross-component setState during render → crash.
+- Fix: moved the addRecentFile store update out of the render-time block into a useEffect that runs when effectiveId/files change. Kept the local setText() sync in render (local state is safe). Merged the focus-editor effect into the same effect.
+- Verified with Agent Browser: opened TextEditor (showed 欢迎.txt), no console errors; recent files recorded (count=1); Start Menu "最近使用" section displays 欢迎.txt 04:32. Final ESLint: 0 errors, 0 warnings.
+
+Stage Summary:
+- Crash resolved. Recent-file tracking still works end-to-end (TextEditor + FileManager → Start Menu recent section) without violating React's render-purity rules.

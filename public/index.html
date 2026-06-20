@@ -533,7 +533,7 @@ function boot(){
 function showBoot(){$('#boot').classList.remove('hidden');}
 function hideBoot(){$('#boot').classList.add('hidden');}
 function lock(){state.phase='lock';renderAll();}
-function unlock(){state.phase='desktop';renderAll();renderDesktop();}
+function unlock(){state.phase='desktop';renderAll();}
 function shutdown(){state.phase='boot';state.windows=[];showBoot();setTimeout(()=>{state.phase='lock';hideBoot();renderAll();},2000);}
 function restart(){state.windows=[];showBoot();setTimeout(()=>{state.phase='lock';hideBoot();renderAll();},2200);}
 
@@ -923,6 +923,10 @@ function renderWindow(win,app){
     const startX=e.clientX,startY=e.clientY,ox=win.x,oy=win.y;
     tb.classList.add('dragging');
     let snapTimer=null;
+    // Capture the pointer on the title bar so drag keeps working even when the
+    // cursor passes over iframes (which otherwise swallow pointer events).
+    // This is essential for file:// usage where iframes have unique origins.
+    try{tb.setPointerCapture(e.pointerId);}catch(err){}
     const move=ev=>{
       const dx=ev.clientX-startX,dy=ev.clientY-startY;
       let nx=ox+dx,ny=oy+dy;
@@ -939,6 +943,7 @@ function renderWindow(win,app){
     };
     const up=ev=>{
       tb.classList.remove('dragging');
+      try{tb.releasePointerCapture(e.pointerId);}catch(err){}
       const sp=state.snapPreview;
       if(sp==='left')snapWindow(win.id,'left');
       else if(sp==='right')snapWindow(win.id,'right');
@@ -960,6 +965,10 @@ function startResize(e,win,dir){
   const startX=e.clientX,startY=e.clientY;
   const ox=win.x,oy=win.y,ow=win.width,oh=win.height;
   const minW=(state.apps.find(a=>a.id===win.appId)||{}).mw||320,minH=(state.apps.find(a=>a.id===win.appId)||{}).mh||240;
+  // Capture the pointer on the resize handle so resizing keeps working when the
+  // cursor passes over iframes (needed for file:// where iframes are opaque).
+  const handle=e.currentTarget;
+  try{handle.setPointerCapture(e.pointerId);}catch(err){}
   const move=ev=>{
     const dx=ev.clientX-startX,dy=ev.clientY-startY;
     let x=ox,y=oy,w=ow,h=oh;
@@ -972,7 +981,11 @@ function startResize(e,win,dir){
     if(wEl){wEl.style.left=x+'px';wEl.style.top=y+'px';wEl.style.width=w+'px';wEl.style.height=h+'px';}
     resizeWindow(win.id,{x,y,width:w,height:h});
   };
-  const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);};
+  const up=ev=>{
+    try{handle.releasePointerCapture(e.pointerId);}catch(err){}
+    document.removeEventListener('pointermove',move);
+    document.removeEventListener('pointerup',up);
+  };
   document.addEventListener('pointermove',move);
   document.addEventListener('pointerup',up);
 }
